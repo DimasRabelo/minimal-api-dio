@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # 1. Serviço do Banco de Dados MySQL
+  mysql-db:
+    image: mysql/mysql-server:8.0
+    restart: always
+    environment:
+      # A senha do root deve ser 'root' para bater com o seu appsettings.json
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: minimal_api
+    ports:
+      # Expõe a porta para acesso externo (opcional)
+      - "3306:3306"
+    volumes:
+      # Persiste os dados fora do container
+      - mysql_data:/var/lib/mysql
+    
+  # 2. Serviço da Aplicação .NET
+  minimal-api:
+    build:
+      context: ./Api # Onde procurar o Dockerfile
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "5004:80" # Mapeia a porta 5004 do host para a porta 80 do container
+    depends_on:
+      - mysql-db
+    environment:
+    # Força a aplicação a ouvir na porta 80, combinando com o mapeamento 'ports'
+      ASPNETCORE_URLS: http://+:80
+      # Mapeia a string de conexão para que a API saiba o nome do host do container MySQL
+      # O host agora é "mysql-db", e não mais "localhost"
+      ConnectionStrings__MySql: Server=mysql-db;Database=minimal_api;Uid=root;Pwd=root;
+      
+# Volume para persistir os dados do MySQL
+volumes:
+  mysql_data:
